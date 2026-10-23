@@ -1,0 +1,29 @@
+# Recomputes popularity, quality scores and similar items every night.
+# Needs repo secrets: Settings -> Secrets and variables -> Actions -> New secret
+#   DATABASE_URL  (required)
+#   LLM_API_KEY   (optional; without it the keyword fallback is used)
+name: Nightly AI scores
+
+on:
+  schedule:
+    - cron: "17 7 * * *"   # 07:17 UTC = about 3am New Jersey time
+  workflow_dispatch:        # "Run workflow" button for demos
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python -m app.ai.nightly_job
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
