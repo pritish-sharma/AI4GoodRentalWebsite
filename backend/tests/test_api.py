@@ -38,3 +38,26 @@ def test_malformed_item_id_is_a_clean_422():
         assert client.get("/recommendations/popular?limit=0").status_code == 422
     finally:
         app.dependency_overrides.clear()
+
+
+def test_cors_allows_only_listed_sites():
+    def preflight(origin):
+        return client.options("/items", headers={
+            "Origin": origin, "Access-Control-Request-Method": "GET"})
+
+    assert preflight("http://localhost:3000").headers.get("access-control-allow-origin") == "http://localhost:3000"
+    assert "access-control-allow-origin" not in preflight("https://evil.example.com").headers
+
+
+def test_frontend_origin_accepts_a_comma_separated_list(monkeypatch):
+    import importlib
+
+    import app.main
+
+    monkeypatch.setenv("FRONTEND_ORIGIN", "http://localhost:3000, https://campus.vercel.app/")
+    try:
+        assert importlib.reload(app.main).ALLOWED_ORIGINS == [
+            "http://localhost:3000", "https://campus.vercel.app"]
+    finally:
+        monkeypatch.delenv("FRONTEND_ORIGIN")
+        importlib.reload(app.main)

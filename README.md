@@ -77,6 +77,42 @@ Click **Log in → Create an account** with a `.edu` email to try renting and li
 The full rental loop is covered by `backend/tests/test_flow.py`. It needs a throwaway
 Postgres database: `TEST_DATABASE_URL=postgresql://... pytest tests/test_flow.py`.
 
+## Deploying (free tiers)
+
+The backend runs on **Render** and the website on **Vercel**; both redeploy automatically
+when `main` changes.
+
+**Backend on Render** (New → Web Service → pick this repo)
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `backend` |
+| Runtime | Python 3 |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Instance Type | Free |
+| Health Check Path | `/health` (under Advanced) |
+| Environment | `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` from `backend/.env`; `FRONTEND_ORIGIN` = `http://localhost:3000,https://<your-site>.vercel.app` |
+
+**Website on Vercel** (Add New → Project → import this repo)
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `frontend` |
+| Framework | Next.js (detected) |
+| Environment | `NEXT_PUBLIC_API_URL` = your Render URL; `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from `frontend/.env.local` |
+
+**After both are live**
+
+1. On Render, set `FRONTEND_ORIGIN` to include the Vercel URL (no trailing slash).
+2. Supabase → Authentication → URL Configuration: set **Site URL** to the Vercel URL.
+3. GitHub → Settings → Secrets and variables → Actions:
+   - Secrets: `DATABASE_URL` (turns on the nightly AI job)
+   - Variables: `BACKEND_URL` = the Render URL (turns on the keep-awake ping)
+
+Free Render servers sleep after 15 idle minutes and take about a minute to wake;
+the keep-awake ping (every 10 minutes) prevents that and also stops Supabase pausing.
+
 ## How we work
 
 - `main` always works. Never push straight to it.
@@ -89,7 +125,7 @@ Postgres database: `TEST_DATABASE_URL=postgresql://... pytest tests/test_flow.py
 | Role | Next task |
 | --- | --- |
 | Frontend | Personalized "For you" row on the home page (stretch goal in the plan) |
-| Backend | Deploy: backend to Render, frontend to Vercel |
+| Backend | Email owners when a request arrives (Supabase or Resend) |
 | AI / data | Pick an LLM provider and implement `_analyze_with_llm` in `review_analyzer.py` |
 | Design / demo | Pick a real name and colors; run a 5-person user test |
 
