@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import items, recommendations, rentals, users
+from app.routers import items, recommendations, rentals, reviews, users
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(items.router)
 app.include_router(rentals.router)
 app.include_router(recommendations.router)
+app.include_router(reviews.router)
 app.include_router(users.router)
 
 

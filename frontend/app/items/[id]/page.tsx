@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import BackendDown from "@/components/BackendDown";
 import ItemGrid from "@/components/ItemGrid";
+import PhotoGallery from "@/components/PhotoGallery";
 import QualityBreakdown from "@/components/QualityBreakdown";
 import RentalRequestCard from "@/components/RentalRequestCard";
 import { getItem, getSimilarItems, type Review } from "@/lib/api";
@@ -33,21 +34,18 @@ async function ItemDetails({ id }: { id: string }) {
     <>
       <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0">
-          <div className="aspect-[4/3] overflow-hidden rounded-xl bg-zinc-100">
-            {item.photos[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.photos[0]} alt={item.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-zinc-400">
-                No photo yet
-              </div>
-            )}
-          </div>
+          <PhotoGallery photos={item.photos} title={item.title} />
 
           <p className="mt-6 text-xs uppercase tracking-wide text-zinc-500">{item.category}</p>
           <h1 className="mt-1 text-3xl font-bold text-zinc-900">{item.title}</h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Listed by <span className="font-medium text-zinc-900">{item.owner_name}</span>
+            Listed by{" "}
+            <Link
+              href={`/users/${item.owner_id}`}
+              className="font-medium text-zinc-900 underline-offset-2 hover:underline"
+            >
+              {item.owner_name}
+            </Link>
             {" · "}Condition (per owner): {item.condition_stated}
           </p>
           {item.description && <p className="mt-4 text-zinc-700">{item.description}</p>}
@@ -56,7 +54,13 @@ async function ItemDetails({ id }: { id: string }) {
         </div>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-          <RentalRequestCard pricePerDay={item.price_per_day} />
+          <RentalRequestCard
+            itemId={item.id}
+            ownerId={item.owner_id}
+            pricePerDay={item.price_per_day}
+            booked={item.booked}
+            paused={item.status === "paused"}
+          />
           <QualityBreakdown
             score={item.quality_score}
             label={item.quality_label}

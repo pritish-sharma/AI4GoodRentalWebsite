@@ -18,6 +18,17 @@ def test_protected_routes_need_login():
     assert res.status_code == 401
 
 
+def test_blocked_words_in_listings():
+    from app.routers.items import blocked_word
+
+    assert blocked_word("Hunting knife", "") == "knife"
+    assert blocked_word("Camping stove", "Uses butane, comes with case") is None
+    assert blocked_word("Beer pong table", None) == "beer"
+    assert blocked_word("Pocket knives set") == "knife"
+    assert blocked_word("Speaker", "no drugs, please!") == "drug"
+    assert blocked_word("Druggist scale") is None  # whole words only
+
+
 def test_malformed_item_id_is_a_clean_422():
     # No database needed: the bad id is rejected before any query runs.
     app.dependency_overrides[get_db] = lambda: None
