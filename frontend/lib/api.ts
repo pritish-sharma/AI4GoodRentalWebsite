@@ -33,10 +33,12 @@ export type ItemDetail = {
   price_per_day: number;
   condition_stated: "like new" | "good" | "worn";
   photos: string[];
+  status: "active" | "paused";
   created_at: string;
   quality_score: number | null;
   quality_label: string | null;
   reviews: Review[];
+  booked: { start_date: string; end_date: string }[];
 };
 
 export type SortOption = "newest" | "quality" | "price";
@@ -79,4 +81,27 @@ export async function getItem(id: string): Promise<ItemDetail | null> {
 
 export function getSimilarItems(id: string): Promise<Item[]> {
   return getJSON(`/recommendations/similar/${encodeURIComponent(id)}`);
+}
+
+export type ProfileReview = Review & { as_role: "owner" | "renter" };
+
+export type PublicProfile = {
+  id: string;
+  name: string;
+  created_at: string;
+  avg_rating: number | null;
+  review_count: number;
+  rentals_completed: number;
+  reviews: ProfileReview[];
+  listings: Item[];
+};
+
+/** Returns null when the person doesn't exist. */
+export async function getProfile(id: string): Promise<PublicProfile | null> {
+  try {
+    return await getJSON<PublicProfile>(`/users/${encodeURIComponent(id)}`);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null;
+    throw err;
+  }
 }

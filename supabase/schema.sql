@@ -76,3 +76,14 @@ create table ai_scores (
 create index on items (category) where status = 'active';
 create index on rentals (item_id, status);
 create index on events (item_id, created_at);
+
+-- Security: the browser holds the public "anon" key, and Supabase's Data API
+-- would let anyone read or write tables with it. Turning on row level security
+-- with no policies blocks that path. Our FastAPI backend connects as the table
+-- owner, so it is unaffected.
+alter table users     enable row level security;
+alter table items     enable row level security;
+alter table rentals   enable row level security;
+alter table reviews   enable row level security;
+alter table events    enable row level security;
+alter table ai_scores enable row level security;
