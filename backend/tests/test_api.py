@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.db import get_db
 from app.main import app
 
 client = TestClient(app)
@@ -15,3 +16,14 @@ def test_protected_routes_need_login():
         "item_id": "x", "start_date": "2030-01-01", "end_date": "2030-01-02",
     })
     assert res.status_code == 401
+
+
+def test_malformed_item_id_is_a_clean_422():
+    # No database needed: the bad id is rejected before any query runs.
+    app.dependency_overrides[get_db] = lambda: None
+    try:
+        assert client.get("/items/not-a-real-id").status_code == 422
+        assert client.get("/recommendations/similar/not-a-real-id").status_code == 422
+        assert client.get("/recommendations/popular?limit=0").status_code == 422
+    finally:
+        app.dependency_overrides.clear()

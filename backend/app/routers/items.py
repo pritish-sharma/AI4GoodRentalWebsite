@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,7 +57,8 @@ def search_items(
 
 
 @router.get("/{item_id}")
-def get_item(item_id: str, db: psycopg.Connection = Depends(get_db)):
+def get_item(item_id: UUID, db: psycopg.Connection = Depends(get_db)):
+    # UUID type: a malformed id gets a clean 422 instead of a database error.
     item = db.execute(
         """
         select i.*, u.name as owner_name,

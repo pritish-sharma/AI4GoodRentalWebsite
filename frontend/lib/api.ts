@@ -1,9 +1,10 @@
-// Small helper for calling the FastAPI backend.
+// Small helpers for calling the FastAPI backend.
 // Set NEXT_PUBLIC_API_URL in frontend/.env.local (see .env.example).
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// What a card needs (home page, browse page, "Others also rented").
 export type Item = {
   id: string;
   title: string;
@@ -14,13 +15,68 @@ export type Item = {
   quality_label: string | null;
 };
 
-export async function getPopularItems(category?: string): Promise<Item[]> {
-  const url = new URL("/recommendations/popular", API_URL);
-  if (category) url.searchParams.set("category", category);
+export type Review = {
+  stars: number;
+  text: string;
+  created_at: string;
+  reviewer_name: string;
+};
 
+// Everything the item detail page shows.
+export type ItemDetail = {
+  id: string;
+  owner_id: string;
+  owner_name: string;
+  title: string;
+  description: string;
+  category: string;
+  price_per_day: number;
+  condition_stated: "like new" | "good" | "worn";
+  photos: string[];
+  created_at: string;
+  quality_score: number | null;
+  quality_label: string | null;
+  reviews: Review[];
+};
+
+export type SortOption = "newest" | "quality" | "price";
+
+async function getJSON<T>(path: string, params?: Record<string, string | undefined>): Promise<T> {
+  const url = new URL(path, API_URL);
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value) url.searchParams.set(key, value);
+  }
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Backend returned ${res.status} for ${url.pathname}`);
+    throw new ApiError(res.status, `Backend returned ${res.status} for ${url.pathname}`);
   }
   return res.json();
+}
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+export function getPopularItems(category?: string): Promise<Item[]> {
+  return getJSON("/recommendations/popular", { category });
+}
+
+export function searchItems(opts: { q?: string; category?: string; sort?: SortOption }): Promise<Item[]> {
+  return getJSON("/items", opts);
+}
+
+/** Returns null when the item doesn't exist, so the page can show a 404. */
+export async function getItem(id: string): Promise<ItemDetail | null> {
+  try {
+    return await getJSON<ItemDetail>(`/items/${encodeURIComponent(id)}`);
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null;
+    throw err;
+  }
+}
+
+export function getSimilarItems(id: string): Promise<Item[]> {
+  return getJSON(`/recommendations/similar/${encodeURIComponent(id)}`);
 }
